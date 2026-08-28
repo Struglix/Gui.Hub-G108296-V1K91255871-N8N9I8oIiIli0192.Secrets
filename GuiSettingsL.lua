@@ -12,6 +12,100 @@ local userId = player.UserId
 local ScriptsData = {
     main = {
         {
+            name = "Fix Lag Version1"
+            tab = "Fix Lag"
+            content = [[
+            local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+local THROWN_FOLDER = Workspace:FindFirstChild("Thrown")
+local MODEL_TO_KEEP = "Model"
+
+local function MakeMapSmooth()
+	for _, obj in ipairs(Workspace:GetDescendants()) do
+		if obj:IsA("BasePart") then
+			pcall(function()
+				obj.Material = Enum.Material.SmoothPlastic
+			end)
+		end
+	end
+end
+
+local function BrightenMap()
+	local currentBrightness = Lighting.Brightness or 1
+	Lighting.Brightness = currentBrightness * 1.15
+	Lighting.ClockTime = 14
+	Lighting.FogEnd = 100000
+	Lighting.Ambient = Color3.fromRGB(200, 200, 200)
+end
+
+local function DeleteInThrownExceptModel()
+	if not THROWN_FOLDER then
+		return
+	end
+	
+	local modelToKeep = THROWN_FOLDER:FindFirstChild(MODEL_TO_KEEP)
+	local toDelete = {}
+	
+	for _, obj in ipairs(THROWN_FOLDER:GetChildren()) do
+		if obj ~= modelToKeep then
+			table.insert(toDelete, obj)
+		end
+	end
+	
+	for _, obj in ipairs(toDelete) do
+		pcall(function()
+			obj:Destroy()
+		end)
+	end
+end
+
+MakeMapSmooth()
+BrightenMap()
+DeleteInThrownExceptModel()
+
+local function StartProtection()
+	local deleteQueue = {}
+	local processing = false
+	
+	local function ProcessQueue()
+		if processing or #deleteQueue == 0 then return end
+		processing = true
+		
+		local count = math.min(#deleteQueue, 30)
+		for i = 1, count do
+			local obj = table.remove(deleteQueue, 1)
+			if obj and obj.Parent == THROWN_FOLDER then
+				local modelToKeep = THROWN_FOLDER:FindFirstChild(MODEL_TO_KEEP)
+				if obj ~= modelToKeep then
+					pcall(function() obj:Destroy() end)
+				end
+			end
+		end
+		
+		processing = false
+		
+		if #deleteQueue > 0 then
+			task.defer(ProcessQueue)
+		end
+	end
+	
+	if THROWN_FOLDER then
+		THROWN_FOLDER.ChildAdded:Connect(function(child)
+			task.wait(0.05)
+			local modelToKeep = THROWN_FOLDER:FindFirstChild(MODEL_TO_KEEP)
+			if child ~= modelToKeep and child.Parent == THROWN_FOLDER then
+				table.insert(deleteQueue, child)
+				ProcessQueue()
+			end
+		end)
+	end
+end
+
+StartProtection()
+            ]]
+        },
+        {
             name = "Speed Boost",
             tab = "Movement",
             content = [[
